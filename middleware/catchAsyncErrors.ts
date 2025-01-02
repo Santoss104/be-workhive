@@ -1,4 +1,3 @@
-// middleware/catchAsyncErrors.ts
 import { Request, Response, NextFunction } from "express";
 
 export const CatchAsyncError = (theFunc: any) => {

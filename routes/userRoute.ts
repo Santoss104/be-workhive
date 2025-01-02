@@ -78,7 +78,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/registration:
+ * /api/v1/users/registration:
  *   post:
  *     summary: Register a new user
  *     tags: [Users]
@@ -125,7 +125,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/activate-user:
+ * /api/v1/users/activate-user:
  *   post:
  *     summary: Activate user account
  *     tags: [Users]
@@ -152,7 +152,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/login:
+ * /api/v1/users/login:
  *   post:
  *     summary: Login user
  *     tags: [Users]
@@ -190,7 +190,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/logout:
+ * /api/v1/users/logout:
  *   get:
  *     summary: Logout user
  *     tags: [Users]
@@ -205,7 +205,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/me:
+ * /api/v1/users/me:
  *   get:
  *     summary: Get user information
  *     tags: [Users]
@@ -222,7 +222,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/social-auth:
+ * /api/v1/users/social-auth:
  *   post:
  *     summary: Social authentication
  *     tags: [Users]
@@ -251,7 +251,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/update-user-info:
+ * /api/v1/users/update-user-info:
  *   put:
  *     summary: Update user information
  *     tags: [Users]
@@ -273,7 +273,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/update-user-password:
+ * /api/v1/users/update-user-password:
  *   put:
  *     summary: Update user password
  *     tags: [Users]
@@ -300,7 +300,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/update-user-avatar:
+ * /api/v1/users/update-user-avatar:
  *   put:
  *     summary: Update user profile picture
  *     tags: [Users]
@@ -334,7 +334,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/forgot-password:
+ * /api/v1/users/forgot-password:
  *   post:
  *     summary: Request password reset OTP
  *     tags: [Users]
@@ -357,7 +357,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/forgot-password-user:
+ * /api/v1/users/forgot-password-user:
  *   post:
  *     summary: Verify OTP for password reset
  *     tags: [Users]
@@ -391,7 +391,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/new-forgot-password:
+ * /api/v1/users/new-forgot-password:
  *   put:
  *     summary: Set new password after forgot password
  *     tags: [Users]
@@ -417,7 +417,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/get-users:
+ * /api/v1/users/get-users:
  *   get:
  *     summary: Get all users (Admin only)
  *     tags: [Users]
@@ -442,7 +442,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/become-seller:
+ * /api/v1/users/become-seller:
  *   put:
  *     summary: Upgrade user to seller role
  *     tags: [Users]
@@ -455,7 +455,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/update-user:
+ * /api/v1/users/update-user:
  *   put:
  *     summary: Update user role (Admin only)
  *     tags: [Users]
@@ -484,7 +484,7 @@ import { authorizeRoles, isAutheticated } from "../middleware/authMiddleware";
 
 /**
  * @swagger
- * /api/v1/user/delete-user/{id}:
+ * /api/v1/users/delete-user/{id}:
  *   delete:
  *     summary: Delete user (Admin only)
  *     tags: [Users]

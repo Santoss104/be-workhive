@@ -15,7 +15,9 @@ const options = {
     },
     servers: [
       {
-        url: process.env.BACKEND_URI,
+        url:
+          process.env.BACKEND_URI ||
+          "https://be-workhive-production.up.railway.app",
         description: "Production server",
       },
       {

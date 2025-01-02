@@ -3,9 +3,8 @@ import ProductModel from "../models/productModel";
 
 // create product
 export const createProductService = async (data: any) => {
-  // Hapus CatchAsyncError karena error handling sudah di controller
   const product = await ProductModel.create(data);
-  return product; // Langsung return product
+  return product;
 };
 
 // Get All Product

@@ -1,11 +1,11 @@
 import dotenv from "dotenv";
 import express, { NextFunction, Request, Response } from "express";
-export const app = express();
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { ErrorMiddleware } from "./middleware/error";
-import swaggerUi from "swagger-ui-express";
-import swaggerDocs from "./setupSwagger";
+import helmet from "helmet";
+import compression from "compression";
+// Routes
+import authRouter from "./routes/authRoute";
 import userRouter from "./routes/userRoute";
 import productRouter from "./routes/productRoute";
 import orderRouter from "./routes/orderRoute";
@@ -13,48 +13,47 @@ import notificationRouter from "./routes/notificationRoute";
 
 dotenv.config();
 
-// body parser
-app.use(express.json({ limit: "50mb" }));
+export const app = express();
 
-// cookie parser
+app.use(helmet());
+
+app.use(compression());
+
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
 app.use(cookieParser());
 
-// cors
 app.use(
   cors({
-    origin: process.env.ORIGIN,
+    origin: "*",
+    credentials: true,
   })
 );
 
-// Swagger UI
-app.use("/docs", swaggerUi.serve);
-app.get(
-  "/docs",
-  swaggerUi.setup(swaggerDocs, {
-    customCss: ".swagger-ui .topbar { display: none }",
-  })
-);
-
-// routes
+// Routes
+app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/products", productRouter);
 app.use("/api/v1/orders", orderRouter);
 app.use("/api/v1/notifications", notificationRouter);
 
-// testing api
-app.get("/test", (req: Request, res: Response, next: NextFunction) => {
+app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
-    message: "API is Working",
+    message: "API is working",
   });
 });
 
-// unknown route
 app.all("*", (req: Request, res: Response, next: NextFunction) => {
   const err = new Error(`Route ${req.originalUrl} not found`) as any;
   err.statusCode = 404;
   next(err);
 });
 
-// middleware calls
-app.use(ErrorMiddleware);
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
+});

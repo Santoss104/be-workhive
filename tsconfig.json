@@ -17,7 +17,7 @@
     "routes/**/*.ts",
     "controllers/**/*.ts",
     "models/**/*.ts",
-    "@types/express/index.d.ts",
+    "@types/**/*.d.ts",
     "backend/**/*.ts"
   ],
   "exclude": [

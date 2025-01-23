@@ -3,7 +3,16 @@ import ProductModel from "../models/productModel";
 
 // create product
 export const createProductService = async (data: any) => {
-  const product = await ProductModel.create(data);
+  const productData = {
+    ...data,
+    price: {
+      complete_fiture: data.price.complete_fiture,
+      basic_fiture: data.price.basic_fiture,
+      prototype_fiture: data.price.prototype_fiture,
+    },
+  };
+
+  const product = await ProductModel.create(productData);
   return product;
 };
 

@@ -7,11 +7,12 @@ import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 export const createReview = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { productId, userId, rating, comment } = req.body;
+      const { productId, userId, orderId, rating, comment } = req.body;
 
       const newReview = await ReviewModel.create({
         productId,
         userId,
+        orderId,
         rating,
         comment,
       });

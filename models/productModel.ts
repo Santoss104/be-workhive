@@ -1,101 +1,190 @@
-import mongoose, { Document, Model, Schema } from "mongoose";
-import { IUser } from "./userModel";
+import mongoose, { Document, Model, Schema, HydratedDocument } from "mongoose";
+import ReviewModel from "./reviewModel";
 
-// Interface untuk Ulasan
-interface IReview extends Document {
-  user: mongoose.Schema.Types.ObjectId;
-  rating: number;
-  comment: string;
-  date: Date;
-}
+const priceRegexPattern: RegExp = /^\d{1,12}(\.\d{1,2})?$/;
 
-// Interface untuk Produk
 export interface IProduct extends Document {
   name: string;
   description: string;
-  category: string;
+  category: mongoose.Schema.Types.ObjectId;
+  price: {
+    complete_fiture: number;
+    basic_fiture: number;
+    prototype_fiture: number;
+  };
   image: {
     public_id: string;
     url: string;
   };
-  price: number;
-  thumbnail: { public_id: string; url: string };
+  thumbnail: {
+    public_id: string;
+    url: string;
+  };
   tags: string[];
-  type: "service" | "product";
   specifications?: string[];
-  reviews: IReview[];
   purchased: number;
   rating?: number;
   available: boolean;
   seller: mongoose.Schema.Types.ObjectId;
+  calculateRating: () => Promise<void>;
+  incrementPurchased: () => Promise<void>;
+  toggleAvailability: () => Promise<void>;
 }
 
-const reviewSchema = new Schema<IReview>(
+const productSchema: Schema<IProduct> = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    rating: { type: Number, required: true },
-    comment: { type: String },
-    date: { type: Date, default: Date.now },
-  },
-  { timestamps: true }
-);
-
-const productSchema = new Schema<IProduct>(
-  {
-    name: { type: String, required: true },
-    description: { type: String, required: true },
-    category: { type: String, required: true },
+    name: {
+      type: String,
+      required: [true, "Please enter product name"],
+    },
+    description: {
+      type: String,
+      required: [true, "Please enter product description"],
+    },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: [true, "Please select a category"],
+    },
+    price: {
+      complete_fiture: {
+        type: Number,
+        required: [true, "Please enter complete package price"],
+        validate: {
+          validator: function (value: number) {
+            return priceRegexPattern.test(value.toString());
+          },
+          message:
+            "Please enter a valid price (up to 12 digits and 2 decimal places)",
+        },
+      },
+      basic_fiture: {
+        type: Number,
+        required: [true, "Please enter basic package price"],
+        validate: {
+          validator: function (value: number) {
+            return priceRegexPattern.test(value.toString());
+          },
+          message:
+            "Please enter a valid price (up to 12 digits and 2 decimal places)",
+        },
+      },
+      prototype_fiture: {
+        type: Number,
+        required: [true, "Please enter prototype package price"],
+        validate: {
+          validator: function (value: number) {
+            return priceRegexPattern.test(value.toString());
+          },
+          message:
+            "Please enter a valid price (up to 12 digits and 2 decimal places)",
+        },
+      },
+    },
     image: {
       public_id: String,
       url: String,
     },
-    price: { type: Number, required: true },
     thumbnail: {
-      public_id: { type: String },
-      url: { type: String },
+      public_id: String,
+      url: String,
     },
-    tags: { type: [String], required: true },
-    type: { type: String, enum: ["service", "product"], required: true },
+    tags: {
+      type: [String],
+      required: [true, "Please enter at least one tag"],
+    },
     specifications: [String],
-    reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Review" }],
-    purchased: { type: Number, default: 0 },
-    rating: { type: Number, default: 0 },
-    available: { type: Boolean, default: true },
+    purchased: {
+      type: Number,
+      default: 0,
+    },
+    rating: {
+      type: Number,
+      default: 0,
+    },
+    available: {
+      type: Boolean,
+      default: true,
+    },
     seller: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
 
-// Metode untuk menghitung rating produk
-productSchema.methods.calculateRating = function (): void {
-  if (this.reviews.length === 0) return;
+productSchema.index({ category: 1, tags: 1 });
+productSchema.index({ seller: 1 });
+productSchema.index({ name: "text", description: "text" });
+productSchema.index({ available: 1 });
 
-  const totalRating = this.reviews.reduce(
-    (acc: number, review: IReview) => acc + review.rating,
-    0
-  );
-  this.rating = totalRating / this.reviews.length;
-  this.save();
-};
+productSchema.virtual("reviews", {
+  ref: "Review",
+  localField: "_id",
+  foreignField: "productId",
+});
 
-// Middleware untuk memastikan bahwa hanya seller yang bisa menambahkan produk
-productSchema.pre("save", async function (next) {
-  // Populate seller untuk mengakses role
-  const seller = await mongoose
-    .model("User")
-    .findById(this.seller)
-    .select("role");
+productSchema.virtual("sellerInfo", {
+  ref: "User",
+  localField: "seller",
+  foreignField: "_id",
+  justOne: true,
+});
 
-  if (seller?.role !== "seller") {
-    throw new Error("Only sellers can add products.");
+productSchema.methods.calculateRating = async function (): Promise<void> {
+  const reviews = await ReviewModel.find({ productId: this._id });
+
+  if (reviews.length === 0) {
+    this.rating = 0;
+    return;
   }
 
+  const totalRating = reviews.reduce((acc, review) => acc + review.rating, 0);
+  this.rating = Number((totalRating / reviews.length).toFixed(1));
+  await this.save();
+};
+
+productSchema.methods.incrementPurchased = async function (): Promise<void> {
+  this.purchased += 1;
+  await this.save();
+};
+
+productSchema.methods.toggleAvailability = async function (): Promise<void> {
+  this.available = !this.available;
+  await this.save();
+};
+
+productSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    const seller = await mongoose
+      .model("User")
+      .findById(this.seller)
+      .select("role");
+    if (seller?.role !== "seller") {
+      throw new Error("Only sellers can add products");
+    }
+  }
   next();
 });
+
+productSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function (this: HydratedDocument<IProduct>) {
+    await ReviewModel.deleteMany({ productId: this._id });
+    await mongoose.model("Order").deleteMany({ productId: this._id });
+    await mongoose.model("Notification").deleteMany({
+      relatedId: this._id,
+      type: "product",
+    });
+  }
+);
 
 const ProductModel: Model<IProduct> = mongoose.model("Product", productSchema);
 

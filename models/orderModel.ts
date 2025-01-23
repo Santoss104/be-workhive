@@ -1,54 +1,128 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
-import { IUser } from "./userModel";
-import { IProduct } from "./productModel";
 
 export interface IOrder extends Document {
   productId: mongoose.Schema.Types.ObjectId;
-  userId: mongoose.Schema.Types.ObjectId; 
-  payment_info: {
-    paymentMethod: string;
-    amountPaid: number;
-    paymentDate: Date;
-    paymentStatus: string;
-    transactionId: string;
-  };
-  status: string;
-  progress?: number;
+  userId: mongoose.Schema.Types.ObjectId;
+  paymentId?: mongoose.Schema.Types.ObjectId;
+  packageType: "complete" | "basic" | "prototype";
+  status: "Unpaid" | "Processing" | "Completed" | "Cancelled" | "Failed";
+  progress: number;
   deliveryDate?: Date;
+  serviceFee: number;
+  adminFee: number;
   totalAmount: number;
+  transactionId: string;
 }
 
-const orderSchema = new Schema<IOrder>(
+const orderSchema: Schema<IOrder> = new mongoose.Schema(
   {
     productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
-      required: true,
+      required: [true, "Product is required"],
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: [true, "User is required"],
     },
-    payment_info: {
-      paymentMethod: { type: String, required: true },
-      amountPaid: { type: Number, required: true },
-      paymentDate: { type: Date, required: true },
-      paymentStatus: { type: String, required: true },
-      transactionId: { type: String, required: true },
+    paymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+    },
+    packageType: {
+      type: String,
+      enum: ["complete", "basic", "prototype"],
+      required: [true, "Package type is required"],
     },
     status: {
       type: String,
-      enum: ["Pending", "Completed", "Cancelled", "Failed"],
-      default: "Pending",
+      enum: ["Unpaid", "Processing", "Completed", "Cancelled", "Failed"],
+      default: "Unpaid",
+    },
+    progress: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    deliveryDate: {
+      type: Date,
+    },
+    serviceFee: {
+      type: Number,
+      default: 150000
+    },
+    adminFee: {
+      type: Number,
+      default: 3000
+    },
+    totalAmount: {
+      type: Number,
+      required: [true, "Total amount is required"],
+      validate: {
+        validator: (value: number) =>
+          value > 0 && /^\d+(\.\d{1,2})?$/.test(value.toString()),
+        message: "Invalid total amount format",
+      },
+    },
+    transactionId: {
+      type: String,
+      unique: true,
       required: true,
     },
-    progress: { type: Number, default: 0 },
-    deliveryDate: { type: Date },
-    totalAmount: { type: Number, required: true },
   },
   { timestamps: true }
 );
+
+orderSchema.index({ userId: 1, status: 1 });
+orderSchema.index({ productId: 1 });
+orderSchema.index({ paymentId: 1 });
+orderSchema.index({ createdAt: -1 });
+
+orderSchema.virtual("product", {
+  ref: "Product",
+  localField: "productId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+orderSchema.virtual("buyer", {
+  ref: "User",
+  localField: "userId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+orderSchema.virtual("review", {
+  ref: "Review",
+  localField: "_id",
+  foreignField: "orderId",
+  justOne: true,
+});
+
+export const validStatusTransitions: Record<string, string[]> = {
+  Unpaid: ["Processing", "Cancelled"],
+  Processing: ["Completed", "Failed"],
+  Completed: [],
+  Cancelled: [],
+  Failed: [],
+};
+
+orderSchema.pre("save", async function (next) {
+  if (this.isModified("status") && !this.isNew) {
+    const oldOrder = await OrderModel.findById(this._id);
+    const validNextStatuses =
+      validStatusTransitions[oldOrder?.status || ""] || [];
+
+    if (!validNextStatuses.includes(this.status)) {
+      throw new Error(
+        `Invalid status transition from ${oldOrder?.status} to ${this.status}`
+      );
+    }
+  }
+  next();
+});
 
 const OrderModel: Model<IOrder> = mongoose.model("Order", orderSchema);
 

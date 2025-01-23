@@ -17,30 +17,21 @@ export interface IUser extends Document {
   };
   role: "user" | "seller" | "admin";
   isVerified: boolean;
-  transactions: Array<{
-    productId: mongoose.Schema.Types.ObjectId;
-    amount: number;
-    status: "pending" | "completed" | "cancelled";
-    date: Date;
-    paymentMethod: string;
-  }>;
   orders: Array<{
     orderId: mongoose.Schema.Types.ObjectId;
     productId: mongoose.Schema.Types.ObjectId;
-    quantity: number;
-    status: "pending" | "completed" | "cancelled";
+    packageType: "complete" | "basic" | "prototype";
+    status: "Pending" | "Processing" | "Completed" | "Cancelled" | "Failed";
     totalPrice: number;
+    progress: number;
     orderDate: Date;
   }>;
-  tasks: Array<{
-    taskId: mongoose.Schema.Types.ObjectId;
-    description: string;
-    status: string;
-  }>;
+  notifications?: mongoose.Schema.Types.ObjectId[];
   comparePassword: (password: string) => Promise<boolean>;
-  generateOTP: () => string;
   SignAccessToken: () => string;
   SignRefreshToken: () => string;
+  upgradeToSeller: () => Promise<void>;
+  isSeller: () => boolean;
 }
 
 const userSchema: Schema<IUser> = new mongoose.Schema(
@@ -78,45 +69,71 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    transactions: [
-      {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-        amount: Number,
-        status: {
-          type: String,
-          enum: ["pending", "completed", "cancelled"],
-          default: "pending",
-        },
-        date: { type: Date, default: Date.now },
-        paymentMethod: { type: String, required: true },
-      },
-    ],
     orders: [
       {
         orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
         productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-        quantity: { type: Number, required: true },
+        packageType: {
+          type: String,
+          enum: ["complete", "basic", "prototype"],
+          required: true,
+        },
         status: {
           type: String,
-          enum: ["pending", "completed", "cancelled"],
-          default: "pending",
+          enum: ["Pending", "Processing", "Completed", "Cancelled", "Failed"],
+          default: "Pending",
         },
         totalPrice: { type: Number, required: true },
+        progress: { type: Number, default: 0 },
         orderDate: { type: Date, default: Date.now },
       },
     ],
-    tasks: [
-      {
-        taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
-        description: String,
-        status: String,
-      },
+    notifications: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Notification" },
     ],
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
 
-// Hash Password before saving
+// Indexes
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ role: 1 });
+userSchema.index({ "orders.status": 1 });
+
+// Virtuals
+userSchema.virtual("activeOrders", {
+  ref: "Order",
+  localField: "_id",
+  foreignField: "userId",
+  match: { status: { $in: ["Pending", "Processing"] } },
+});
+
+userSchema.virtual("reviews", {
+  ref: "Review",
+  localField: "_id",
+  foreignField: "userId",
+});
+
+userSchema.virtual("products", {
+  ref: "Product",
+  localField: "_id",
+  foreignField: "seller",
+  match: function () {
+    return this.role === "seller" ? {} : { _id: null };
+  },
+});
+
+userSchema.virtual("userNotifications", {
+  ref: "Notification",
+  localField: "_id",
+  foreignField: "userId",
+});
+
+// Pre save - hash password
 userSchema.pre<IUser>("save", async function (next) {
   if (!this.isModified("password")) {
     next();
@@ -125,27 +142,44 @@ userSchema.pre<IUser>("save", async function (next) {
   next();
 });
 
-// sign access token
+// Methods
 userSchema.methods.SignAccessToken = function () {
-  return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || '', {
+  return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || "", {
     expiresIn: "5m",
   });
 };
 
-// sign refresh token
 userSchema.methods.SignRefreshToken = function () {
-  return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN || '', {
+  return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN || "", {
     expiresIn: "3d",
   });
 };
 
-// compare password
 userSchema.methods.comparePassword = async function (
   enteredPassword: string
 ): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const userModel: Model<IUser> = mongoose.model("User", userSchema);
+userSchema.methods.upgradeToSeller = async function (): Promise<void> {
+  if (this.role === "seller") {
+    throw new Error("User is already a seller");
+  }
 
-export default userModel;
+  this.role = "seller";
+  await this.save();
+};
+
+userSchema.methods.isSeller = function (): boolean {
+  return this.role === "seller";
+};
+
+userSchema.pre("save", async function (next) {
+  if (this.isModified("role") && this.role === "seller") {
+  }
+  next();
+});
+
+const UserModel: Model<IUser> = mongoose.model("User", userSchema);
+
+export default UserModel;

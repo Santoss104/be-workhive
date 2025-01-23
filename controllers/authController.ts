@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import userModel, { IUser } from "../models/userModel";
+import UserModel, { IUser } from "../models/userModel";
 import ErrorHandler from "../utils/errorHandler";
 import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
@@ -28,7 +28,7 @@ export const registrationUser = CatchAsyncError(
         return next(new ErrorHandler("Passwords do not match", 400));
       }
 
-      const isEmailExist = await userModel.findOne({ email });
+      const isEmailExist = await UserModel.findOne({ email });
       if (isEmailExist) {
         return next(new ErrorHandler("Email already exist", 400));
       }
@@ -119,12 +119,12 @@ export const activateUser = CatchAsyncError(
 
       const { name, email, password } = newUser.user;
 
-      const existUser = await userModel.findOne({ email });
+      const existUser = await UserModel.findOne({ email });
 
       if (existUser) {
         return next(new ErrorHandler("Email already exist", 400));
       }
-      const user = await userModel.create({
+      const user = await UserModel.create({
         name,
         email,
         password,
@@ -154,7 +154,7 @@ export const loginUser = CatchAsyncError(
         return next(new ErrorHandler("Please enter email and password", 400));
       }
 
-      const user = await userModel.findOne({ email }).select("+password");
+      const user = await UserModel.findOne({ email }).select("+password");
 
       if (!user) {
         return next(new ErrorHandler("Invalid email or password", 400));
@@ -202,9 +202,9 @@ export const socialAuth = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, name, avatar } = req.body as ISocialAuthBody;
-      const user = await userModel.findOne({ email });
+      const user = await UserModel.findOne({ email });
       if (!user) {
-        const newUser = await userModel.create({ email, name, avatar });
+        const newUser = await UserModel.create({ email, name, avatar });
         sendToken(newUser, 200, res);
       } else {
         sendToken(user, 200, res);
@@ -225,7 +225,7 @@ export const forgotPassword = CatchAsyncError(
     try {
       const { email } = req.body as IForgotPasswordBody;
 
-      const user = await userModel.findOne({ email });
+      const user = await UserModel.findOne({ email });
       if (!user) {
         return next(new ErrorHandler("User not found", 404));
       }
@@ -298,7 +298,7 @@ export const forgotPasswordUser = CatchAsyncError(
         return next(new ErrorHandler("Invalid OTP", 400));
       }
 
-      const user = await userModel.findById(decoded.user._id);
+      const user = await UserModel.findById(decoded.user._id);
       if (!user) {
         return next(new ErrorHandler("User not found", 404));
       }
@@ -324,7 +324,7 @@ export const newPassword = CatchAsyncError(
     try {
       const { newPassword, userId } = req.body as INewPassword;
 
-      const user = await userModel.findById(userId).select("+password");
+      const user = await UserModel.findById(userId).select("+password");
       if (!user) {
         return next(new ErrorHandler("User not found", 404));
       }

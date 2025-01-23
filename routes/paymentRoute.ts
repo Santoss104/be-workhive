@@ -2,15 +2,35 @@ import express from "express";
 import {
   createPayment,
   getPaymentByOrderId,
+  getAllPayments,
+  getUserPayments,
+  updatePaymentStatus,
+  deletePayment,
 } from "../controllers/paymentController";
-import { isAutheticated } from "../middleware/authMiddleware";
+import { isAutheticated, authorizeRoles } from "../middleware/authMiddleware";
 
 const paymentRouter = express.Router();
 
-// Create a payment (only authenticated users can create payments)
+paymentRouter.get("/order/:orderId", getPaymentByOrderId);
 paymentRouter.post("/create", isAutheticated, createPayment);
-
-// Get payment by order ID (only authenticated users can view their payment details)
-paymentRouter.get("/order/:orderId", isAutheticated, getPaymentByOrderId);
+paymentRouter.get("/user", isAutheticated, getUserPayments);
+paymentRouter.get(
+  "/all",
+  isAutheticated,
+  authorizeRoles("admin"),
+  getAllPayments
+);
+paymentRouter.patch(
+  "/:id/status",
+  isAutheticated,
+  authorizeRoles("admin"),
+  updatePaymentStatus
+);
+paymentRouter.delete(
+  "/:id",
+  isAutheticated,
+  authorizeRoles("admin"),
+  deletePayment
+);
 
 export default paymentRouter;

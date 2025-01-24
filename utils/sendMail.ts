@@ -29,10 +29,8 @@ const sendMail = async (options: EmailOptions): Promise<void> => {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
 
-  // get the pdath to the email template file
   const templatePath = path.join(__dirname, '../mails', template);
 
-  // Render the email template with EJS
   const html: string = await ejs.renderFile(templatePath, data);
 
   const mailOptions = {

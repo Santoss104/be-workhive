@@ -18,7 +18,6 @@ export const createProduct = CatchAsyncError(
         return next(new ErrorHandler("Only sellers can create products", 403));
       }
 
-      // Validate price data
       const { complete_fiture, basic_fiture, prototype_fiture } =
         req.body.price;
       if (!complete_fiture || !basic_fiture || !prototype_fiture) {
@@ -136,7 +135,6 @@ export const updateProduct = CatchAsyncError(
             new ErrorHandler(priceValidation.error || "Invalid price", 400)
           );
         }
-        // Konversi ke number
         req.body.price = {
           complete_fiture: Number(req.body.price.complete_fiture),
           basic_fiture: Number(req.body.price.basic_fiture),
@@ -144,7 +142,6 @@ export const updateProduct = CatchAsyncError(
         };
       }
 
-      // Handle image update
       if (req.body.image && product.image?.public_id) {
         await cloudinary.v2.uploader.destroy(product.image.public_id);
         const imageUpload = await cloudinary.v2.uploader.upload(
@@ -161,7 +158,6 @@ export const updateProduct = CatchAsyncError(
         };
       }
 
-      // Handle thumbnail update
       if (req.body.thumbnail && product.thumbnail?.public_id) {
         await cloudinary.v2.uploader.destroy(product.thumbnail.public_id);
         const thumbnailUpload = await cloudinary.v2.uploader.upload(

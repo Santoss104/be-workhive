@@ -23,7 +23,6 @@ const categorySchema = new mongoose.Schema<ICategory, ICategoryModel>(
 
 categorySchema.index({ name: 1 }, { unique: true });
 
-// Add static method
 categorySchema.static("findByName", function (name: string) {
   return this.findOne({ name: { $regex: name, $options: "i" } });
 });

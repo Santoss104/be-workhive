@@ -99,12 +99,10 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
   }
 );
 
-// Indexes
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ role: 1 });
 userSchema.index({ "orders.status": 1 });
 
-// Virtuals
 userSchema.virtual("activeOrders", {
   ref: "Order",
   localField: "_id",
@@ -133,7 +131,6 @@ userSchema.virtual("userNotifications", {
   foreignField: "userId",
 });
 
-// Pre save - hash password
 userSchema.pre<IUser>("save", async function (next) {
   if (!this.isModified("password")) {
     next();
@@ -142,7 +139,6 @@ userSchema.pre<IUser>("save", async function (next) {
   next();
 });
 
-// Methods
 userSchema.methods.SignAccessToken = function () {
   return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || "", {
     expiresIn: "5m",
